@@ -24,12 +24,20 @@ Buffalo ships with a command that will watch your application and automatically 
 
 If you point your browser to [http://127.0.0.1:3000](http://127.0.0.1:3000) you should see a "Welcome to Buffalo!" page.
 
-**Congratulations!** You now have your Buffalo application up and running.
+## API
 
-## What Next?
+Create user:
 
-We recommend you heading over to [http://gobuffalo.io](http://gobuffalo.io) and reviewing all of the great documentation there.
+```
+curl -H 'Content-Type: application/json' \
+    -d '{"email":"godinezj@gmail.com", "password":"password", "password_confirm":"password"}' \
+    -X POST http://127.0.0.1:3000/users
+```
 
-Good luck!
+Login
 
-[Powered by Buffalo](http://gobuffalo.io)
+```
+curl -H 'Content-Type: application/json' \
+    -d '{"email":"godinezj@gmail.com", "password":"password"}' \
+    http://127.0.0.1:3000/login
+```
