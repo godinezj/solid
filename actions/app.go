@@ -8,7 +8,6 @@ import (
 	"github.com/unrolled/secure"
 
 	"bitbucket.org/godinezj/solid/models"
-	"github.com/gobuffalo/x/sessions"
 	"github.com/rs/cors"
 )
 
@@ -23,8 +22,11 @@ var app *buffalo.App
 func App() *buffalo.App {
 	if app == nil {
 		app = buffalo.New(buffalo.Options{
-			Env:          ENV,
-			SessionStore: sessions.Null{},
+			Env: ENV,
+			// TODO replace buffalo sessions with OAuth.
+			// This line is commented out below because buffalo uses
+			// null sessions for APIS by default.
+			// SessionStore: sessions.Null{},
 			PreWares: []buffalo.PreWare{
 				cors.Default().Handler,
 			},
@@ -47,6 +49,8 @@ func App() *buffalo.App {
 
 		app.GET("/", HomeHandler)
 
+		app.Resource("/users", UsersResource{})
+		app.POST("/login", Login)
 	}
 
 	return app
