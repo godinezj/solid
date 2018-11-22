@@ -41,3 +41,27 @@ curl -H 'Content-Type: application/json' \
     -d '{"email":"godinezj@gmail.com", "password":"password"}' \
     http://127.0.0.1:3000/login
 ```
+
+Forgot password
+
+```
+curl -H 'Content-Type: application/json' \
+    -d '{"email":"godinezj@gmail.com"}' \
+    http://127.0.0.1:3000/forgot_password
+```
+
+Reset password
+
+```
+curl -H 'Content-Type: application/json' \
+    -d '{"email":"godinezj@gmail.com", "reset_token_confirm": "507f6c6c-19ca-48a2-9ca8-30f4901e8345", "password":"password1", "password_confirm":"password1"}' \
+    http://127.0.0.1:3000/reset_password
+```
+
+Login with new password
+
+```
+curl -H 'Content-Type: application/json' \
+    -d '{"email":"godinezj@gmail.com", "password":"password1"}' \
+    http://127.0.0.1:3000/login
+```

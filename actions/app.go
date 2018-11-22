@@ -49,8 +49,10 @@ func App() *buffalo.App {
 
 		app.GET("/", HomeHandler)
 
-		app.Resource("/users", UsersResource{})
+		app.POST("/users", Create)
 		app.POST("/login", Login)
+		app.POST("/forgot_password", GenPassResetToken)
+		app.POST("/reset_password", ValidatePassResetToken)
 	}
 
 	return app
