@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"bitbucket.org/godinezj/solid/ldap"
+
 	"github.com/gobuffalo/pop"
 	"github.com/gobuffalo/uuid"
 	"github.com/gobuffalo/validate"
@@ -19,6 +21,7 @@ type User struct {
 	ID                uuid.UUID `json:"id" db:"id"`
 	CreatedAt         time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at" db:"updated_at"`
+	Username          string    `json:"username" db:"username"`
 	Email             string    `json:"email" db:"email"`
 	PasswordHash      string    `json:"-" db:"password_hash"`
 	Password          string    `json:"password" db:"-"`
@@ -125,8 +128,18 @@ func (u *User) Authorize(tx *pop.Connection) error {
 	if err := u.Load(tx); err != nil {
 		return err
 	}
+
+	ldap := ldap.Client{}
+	if err := ldap.Connect(); err != nil {
+		return err
+	}
+	err := ldap.Authenticate(u.Username, u.Password)
+	if err != nil {
+		return err
+	}
+
 	// confirm that the given password matches the hashed password from the db
-	err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(u.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(u.Password))
 	if err != nil {
 		return errors.New("Wrong password.")
 	}
