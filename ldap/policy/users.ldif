@@ -1,0 +1,7 @@
+dn: uid=testuser,ou=Users,dc=solidly,dc=io
+cn: test user
+sn: user
+uid: testuser
+ou: Users
+objectClass: organizationalPerson
+objectClass: inetOrgPerson

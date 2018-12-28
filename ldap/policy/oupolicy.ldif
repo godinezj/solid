@@ -1,0 +1,5 @@
+dn: ou=Policies,dc=solidly,dc=io
+objectClass: top
+objectClass: organizationalUnit
+ou: Policies
+description: Users organization policies
