@@ -34,6 +34,10 @@ func (c *Client) Authenticate(username, password string) error {
 	return err
 }
 
+func (c *Client) AddUser(username string) (string, error) {
+	return "", nil
+}
+
 func (c *Client) Close() {
 	c.Conn.Close()
 	c.Conn = nil
