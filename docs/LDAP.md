@@ -63,7 +63,7 @@ ldapadd -D cn=admin,dc=solidly,dc=io -w ADMIN_PASSWORD -f ldap/policy/passwordpo
 ldapadd -D cn=admin,dc=solidly,dc=io -w ADMIN_PASSWORD -f ldap/policy/userou.ldif
 ```
 
-### Add a user in ldap and generate the passwoed
+### Add a testuser in ldap and generate the passwoed
 
 ```bash
 ldapadd -D cn=admin,dc=solidly,dc=io -w ADMIN_PASSWORD -f ldap/policy/users.ldif
