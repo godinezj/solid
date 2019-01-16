@@ -2,6 +2,7 @@ package ldap
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	ldap "gopkg.in/ldap.v2"
@@ -11,34 +12,73 @@ type Client struct {
 	Conn *ldap.Conn
 }
 
+// Opens a TCP connection to LDAP
 func (c *Client) Connect() error {
 	// connect
 	conn, err := ldap.Dial("tcp", os.Getenv("LDAP_BIND_HOST"))
 	if err != nil {
 		return err
 	}
-
-	// authenticate
-	err = conn.Bind(os.Getenv("LDAP_BIND_USER"), os.Getenv("LDAP_BIND_PASS"))
-	if err != nil {
-		return err
-	}
-
 	c.Conn = conn
 	return nil
 }
 
+// Authenticates with admin credentials, use this for administrative functions
+func (c *Client) AdminAuth() error {
+	if c.Conn == nil {
+		return fmt.Errorf("Connection not bound to LDAP")
+	}
+	// authenticate
+	err := c.Conn.Bind(os.Getenv("LDAP_BIND_USER"), os.Getenv("LDAP_BIND_PASS"))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Adds user, requires an admin connection
+func (c *Client) AddUser(first, last, username string) (string, error) {
+	if c.Conn == nil {
+		return "", fmt.Errorf("Connection not bound to LDAP")
+	}
+	dn := fmt.Sprintf(os.Getenv("LDAP_USERS_DN"), username)
+	log.Printf("Adding dn: %s", dn)
+	addReq := ldap.NewAddRequest(dn)
+	cn := fmt.Sprintf("%s %s", first, last)
+	log.Printf("Adding cn: %s", cn)
+	addReq.Attribute("cn", []string{cn})
+	addReq.Attribute("sn", []string{last})
+	addReq.Attribute("uid", []string{username})
+	addReq.Attribute("ou", []string{"Users"})
+	addReq.Attribute("objectClass", []string{"organizationalPerson", "inetOrgPerson"})
+	err := c.Conn.Add(addReq)
+	if err != nil {
+		return "", err
+	}
+
+	passModReq := ldap.NewPasswordModifyRequest(dn, "", "")
+	passModRes, err := c.Conn.PasswordModify(passModReq)
+	if err != nil {
+		return "", err
+	}
+	return passModRes.GeneratedPassword, nil
+}
+
+// Authenticates users using simple username and password
 func (c *Client) Authenticate(username, password string) error {
-	userDN := fmt.Sprintf("uid=%s,ou=Users,dc=solidly,dc=io", username)
+	if c.Conn == nil {
+		return fmt.Errorf("Connection not bound to LDAP")
+	}
+	userDN := fmt.Sprintf(os.Getenv("LDAP_USERS_DN"), username)
+	log.Printf("Authenticating user: %s with password %s", userDN, password)
 	err := c.Conn.Bind(userDN, password)
 	return err
 }
 
-func (c *Client) AddUser(username string) (string, error) {
-	return "", nil
-}
-
+// Closes the connection
 func (c *Client) Close() {
-	c.Conn.Close()
+	if c.Conn != nil {
+		c.Conn.Close()
+	}
 	c.Conn = nil
 }
