@@ -25,7 +25,7 @@ func Test_Client(t *testing.T) {
 	// client.Conn.Debug = true
 	// add user
 	username := "testuser8"
-	pass, err := client.AddUser("test", "user", username)
+	pass, err := client.AddUser("test", "user", username, "")
 	if err != nil {
 		t.Fatal(err)
 	}

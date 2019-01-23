@@ -1,5 +1,9 @@
 create_table("users") {
 	t.Column("id", "uuid", {"primary": true})
+	t.Column("first_name", "string", {})
+	t.Column("last_name", "string", {})
 	t.Column("email", "string", {"unique": true})
-	t.Column("password_hash", "string", {"default": ""})
+	t.Column("zip", "string", {})
+	t.Column("reset_token", "uuid", {})
+	t.Column("reset_token_expire", "date", {})
 }

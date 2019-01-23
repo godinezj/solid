@@ -37,7 +37,7 @@ func (c *Client) AdminAuth() error {
 }
 
 // Adds user, requires an admin connection
-func (c *Client) AddUser(first, last, username string) (string, error) {
+func (c *Client) AddUser(first, last, username, password string) (string, error) {
 	if c.Conn == nil {
 		return "", fmt.Errorf("Connection not bound to LDAP")
 	}
@@ -56,7 +56,7 @@ func (c *Client) AddUser(first, last, username string) (string, error) {
 		return "", err
 	}
 
-	passModReq := ldap.NewPasswordModifyRequest(dn, "", "")
+	passModReq := ldap.NewPasswordModifyRequest(dn, "", password)
 	passModRes, err := c.Conn.PasswordModify(passModReq)
 	if err != nil {
 		return "", err

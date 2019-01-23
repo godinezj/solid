@@ -6,29 +6,29 @@ import (
 	"log"
 	"strings"
 	"time"
+	"unicode"
 
 	"bitbucket.org/godinezj/solid/ldap"
-
 	"github.com/gobuffalo/pop"
 	"github.com/gobuffalo/uuid"
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
 	ID                uuid.UUID `json:"id" db:"id"`
 	CreatedAt         time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at" db:"updated_at"`
-	Username          string    `json:"username" db:"username"`
+	FirstName         string    `json:"first_name" db:"first_name"`
+	LastName          string    `json:"last_name" db:"last_name"`
 	Email             string    `json:"email" db:"email"`
-	PasswordHash      string    `json:"-" db:"password_hash"`
+	Zip               string    `json:"zip" db:"zip"`
 	Password          string    `json:"password" db:"-"`
 	PasswordConfirm   string    `json:"password_confirm" db:"-"`
 	ResetToken        uuid.UUID `json:"-" db:"reset_token"`
 	ResetTokenConfirm uuid.UUID `json:"reset_token_confirm" db:"-"`
-	// ResetTokenExpire time.Time `json:"-" db:"reset_token_expire"`
+	ResetTokenExpire  time.Time `json:"-" db:"reset_token_expire"`
 }
 
 // String is not required by pop and may be deleted
@@ -49,22 +49,35 @@ func (u Users) String() string {
 // Create validates and creates a new User.
 func (u *User) Create(tx *pop.Connection) (*validate.Errors, error) {
 	u.Email = strings.ToLower(u.Email)
-	pwdHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return validate.NewErrors(), errors.WithStack(err)
+	verrs, errs := tx.ValidateAndCreate(u)
+	if errs != nil {
+		return verrs, errs
 	}
-	u.PasswordHash = string(pwdHash)
-	return tx.ValidateAndCreate(u)
+
+	// make admin connection
+	client := ldap.Client{}
+	defer client.Close() // close the admin connection
+	err := client.Connect()
+	if err != nil {
+		return verrs, err
+	}
+	err = client.AdminAuth()
+	if err != nil {
+		return verrs, err
+	}
+
+	// add user
+	_, err = client.AddUser(u.FirstName, u.LastName, u.Email, u.Password)
+	if err != nil {
+		return verrs, err
+	}
+	return verrs, err
 }
 
 // Update validates and Updates a new User.
 func (u *User) Update(tx *pop.Connection) (*validate.Errors, error) {
 	u.Email = strings.ToLower(u.Email)
-	pwdHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return validate.NewErrors(), errors.WithStack(err)
-	}
-	u.PasswordHash = string(pwdHash)
+	// TODO add ldap chpw functionality
 	return tx.ValidateAndUpdate(u)
 }
 
@@ -76,6 +89,8 @@ func (u *User) Validate(tx *pop.Connection) (*validate.Errors, error) {
 		&validators.EmailIsPresent{Field: u.Email, Name: "Email"},
 		&validators.StringIsPresent{Field: u.Password, Name: "Password"},
 		&validators.StringIsPresent{Field: u.Password, Name: "PasswordConfirm"},
+		&StrongPassword{Field: u.Password, Name: "Password"},
+		&validators.StringLengthInRange{Field: u.Password, Name: "Password", Min: 6, Max: 64},
 		&validators.StringsMatch{Name: "Password", Field: u.Password, Field2: u.PasswordConfirm, Message: "Passwords do not match."},
 	), nil
 }
@@ -92,6 +107,32 @@ func (u *User) ValidateCreate(tx *pop.Connection) (*validate.Errors, error) {
 // This method is not required and may be deleted.
 func (u *User) ValidateUpdate(tx *pop.Connection) (*validate.Errors, error) {
 	return validate.NewErrors(), nil
+}
+
+type StrongPassword struct {
+	Name  string
+	Field string
+}
+
+func (v *StrongPassword) IsValid(errors *validate.Errors) {
+	mustHave := []func(rune) bool{
+		unicode.IsUpper,
+		unicode.IsLower,
+		unicode.IsPunct,
+		unicode.IsDigit,
+	}
+
+	for _, testRune := range mustHave {
+		found := false
+		for _, r := range v.Field {
+			if testRune(r) {
+				found = true
+			}
+		}
+		if !found {
+			errors.Add(validators.GenerateKey(v.Name), "Invalid password")
+		}
+	}
 }
 
 type EmailNotTaken struct {
@@ -122,8 +163,8 @@ func (u *User) Load(tx *pop.Connection) error {
 	return nil
 }
 
-// Authorize checks user's password for logging in
-func (u *User) Authorize(tx *pop.Connection) error {
+// Authenticate checks user's password for logging in
+func (u *User) Authenticate(tx *pop.Connection) error {
 	log.Println("Authenticating " + u.Email)
 	if err := u.Load(tx); err != nil {
 		return err
@@ -133,15 +174,9 @@ func (u *User) Authorize(tx *pop.Connection) error {
 	if err := ldap.Connect(); err != nil {
 		return err
 	}
-	err := ldap.Authenticate(u.Username, u.Password)
+	err := ldap.Authenticate(u.Email, u.Password)
 	if err != nil {
 		return err
-	}
-
-	// confirm that the given password matches the hashed password from the db
-	err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(u.Password))
-	if err != nil {
-		return errors.New("Wrong password.")
 	}
 	return nil
 }

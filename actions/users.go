@@ -28,18 +28,24 @@ func Create(c buffalo.Context) error {
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
-		log.Println("no transaction found")
+		log.Println("No transaction found")
 		return c.Render(422, r.JSON(map[string]string{"message": errMessage}))
 	}
 
 	// Validate the data
 	verrs, err := user.Create(tx)
 	if err != nil {
+		log.Println("Validation failed")
+
 		return c.Render(422, r.JSON(map[string]string{"message": errMessage}))
 	}
 
 	if verrs.HasAny() {
 		// Respond with errors to user
+		log.Println("Validation failed")
+		for verr := range verrs.Errors {
+			log.Println("Failed validation: " + verr)
+		}
 		return c.Render(422, r.JSON(verrs))
 	}
 
@@ -57,7 +63,7 @@ func Login(c buffalo.Context) error {
 		r.JSON(map[string]string{"message": errMessage})
 	}
 	tx := c.Value("tx").(*pop.Connection)
-	err := user.Authorize(tx)
+	err := user.Authenticate(tx)
 	if err != nil {
 		log.Println(err)
 		// Return invalid email/password wether users exists or not

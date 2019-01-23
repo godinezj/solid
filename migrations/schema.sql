@@ -50,11 +50,14 @@ ALTER TABLE public.schema_migration OWNER TO postgres;
 
 CREATE TABLE public.users (
     id uuid NOT NULL,
+    first_name character varying(255) NOT NULL,
+    last_name character varying(255) NOT NULL,
     email character varying(255) NOT NULL,
-    password_hash character varying(255) DEFAULT ''::character varying NOT NULL,
+    zip character varying(255) NOT NULL,
+    reset_token uuid NOT NULL,
+    reset_token_expire date NOT NULL,
     created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL,
-    reset_token uuid NOT NULL
+    updated_at timestamp without time zone NOT NULL
 );
 
 
