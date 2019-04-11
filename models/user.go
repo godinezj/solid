@@ -3,16 +3,16 @@ package models
 import (
 	"database/sql"
 	"encoding/json"
-	"log"
 	"strings"
 	"time"
 	"unicode"
 
 	"bitbucket.org/godinezj/solid/ldap"
+	"bitbucket.org/godinezj/solid/log"
 	"github.com/gobuffalo/pop"
-	"github.com/gobuffalo/uuid"
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
+	"github.com/gofrs/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -49,26 +49,32 @@ func (u Users) String() string {
 // Create validates and creates a new User.
 func (u *User) Create(tx *pop.Connection) (*validate.Errors, error) {
 	u.Email = strings.ToLower(u.Email)
-	verrs, errs := tx.ValidateAndCreate(u)
-	if errs != nil {
-		return verrs, errs
+	verrs, err := tx.ValidateAndCreate(u)
+	if err != nil {
+		log.Errorf("verrs %v", verrs)
+		log.Errorf("errs %v", err)
+		return verrs, err
 	}
+	log.Error("User created in db")
 
 	// make admin connection
 	client := ldap.Client{}
 	defer client.Close() // close the admin connection
-	err := client.Connect()
+	client.Connect()
 	if err != nil {
+		log.Error("LDAP: An error occured creating user")
 		return verrs, err
 	}
 	err = client.AdminAuth()
 	if err != nil {
+		verrs.Add("ldap", "An error occured creating user")
 		return verrs, err
 	}
 
 	// add user
 	_, err = client.AddUser(u.FirstName, u.LastName, u.Email, u.Password)
 	if err != nil {
+		verrs.Add("ldap", "An error occured creating user")
 		return verrs, err
 	}
 	return verrs, err
@@ -96,7 +102,6 @@ func (u *User) Validate(tx *pop.Connection) (*validate.Errors, error) {
 }
 
 // ValidateCreate gets run every time you call "pop.ValidateAndCreate" method.
-// This method is not required and may be deleted.
 func (u *User) ValidateCreate(tx *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		&EmailNotTaken{Name: "Email", Field: u.Email, tx: tx},
@@ -118,7 +123,7 @@ func (v *StrongPassword) IsValid(errors *validate.Errors) {
 	mustHave := []func(rune) bool{
 		unicode.IsUpper,
 		unicode.IsLower,
-		unicode.IsPunct,
+		// unicode.IsPunct,
 		unicode.IsDigit,
 	}
 
@@ -130,7 +135,8 @@ func (v *StrongPassword) IsValid(errors *validate.Errors) {
 			}
 		}
 		if !found {
-			errors.Add(validators.GenerateKey(v.Name), "Invalid password")
+			errors.Add(validators.GenerateKey(v.Name), "Password requires uppercase, lowercase, and a digit.")
+			return
 		}
 	}
 }
@@ -165,7 +171,7 @@ func (u *User) Load(tx *pop.Connection) error {
 
 // Authenticate checks user's password for logging in
 func (u *User) Authenticate(tx *pop.Connection) error {
-	log.Println("Authenticating " + u.Email)
+	log.Info("Authenticating " + u.Email)
 	if err := u.Load(tx); err != nil {
 		return err
 	}
@@ -187,7 +193,7 @@ func (u *User) SendResetToken(tx *pop.Connection) error {
 	}
 
 	// set reset token
-	log.Println("Setting reset token for " + u.Email)
+	log.Info("Setting reset token for " + u.Email)
 	token, err := uuid.NewV4()
 	if err == nil {
 		// save token to user in db
@@ -208,9 +214,8 @@ func (u *User) ChangePassword(tx *pop.Connection) (*validate.Errors, error) {
 	if err != nil {
 		return nil, errors.New("User not found")
 	}
-	log.Printf("%s == %s\n", u.ResetTokenConfirm, queryUser.ResetToken)
-	uuidsMatch := uuid.Equal(u.ResetTokenConfirm, queryUser.ResetToken)
-	if !uuidsMatch {
+	log.Infof("%s == %s\n", u.ResetTokenConfirm, queryUser.ResetToken)
+	if u.ResetTokenConfirm != queryUser.ResetToken {
 		return nil, errors.New("Tokens do not match")
 	}
 	queryUser.Password = u.Password
