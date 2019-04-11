@@ -1,10 +1,11 @@
 package ldap
 
 import (
+	"crypto/tls"
 	"fmt"
-	"log"
 	"os"
 
+	"bitbucket.org/godinezj/solid/log"
 	ldap "gopkg.in/ldap.v2"
 )
 
@@ -14,8 +15,12 @@ type Client struct {
 
 // Opens a TCP connection to LDAP
 func (c *Client) Connect() error {
+	config := &tls.Config{
+		InsecureSkipVerify: true,
+		ServerName:         os.Getenv("LDAP_SSL_HOSTNAME"),
+	}
 	// connect
-	conn, err := ldap.Dial("tcp", os.Getenv("LDAP_BIND_HOST"))
+	conn, err := ldap.DialTLS("tcp", os.Getenv("LDAP_BIND_HOST"), config)
 	if err != nil {
 		return err
 	}
@@ -42,10 +47,10 @@ func (c *Client) AddUser(first, last, username, password string) (string, error)
 		return "", fmt.Errorf("Connection not bound to LDAP")
 	}
 	dn := fmt.Sprintf(os.Getenv("LDAP_USERS_DN"), username)
-	log.Printf("Adding dn: %s", dn)
+	log.Infof("Adding dn: %s", dn)
 	addReq := ldap.NewAddRequest(dn)
 	cn := fmt.Sprintf("%s %s", first, last)
-	log.Printf("Adding cn: %s", cn)
+	log.Infof("Adding cn: %s", cn)
 	addReq.Attribute("cn", []string{cn})
 	addReq.Attribute("sn", []string{last})
 	addReq.Attribute("uid", []string{username})
@@ -70,7 +75,7 @@ func (c *Client) Authenticate(username, password string) error {
 		return fmt.Errorf("Connection not bound to LDAP")
 	}
 	userDN := fmt.Sprintf(os.Getenv("LDAP_USERS_DN"), username)
-	log.Printf("Authenticating user: %s with password %s", userDN, password)
+	log.Infof("Authenticating user: %s with password %s", userDN, password)
 	err := c.Conn.Bind(userDN, password)
 	return err
 }
