@@ -1,6 +1,6 @@
 # This is a multi-stage Dockerfile and requires >= Docker 17.05
 # https://docs.docker.com/engine/userguide/eng-image/multistage-build/
-FROM gobuffalo/buffalo:v0.12.4 as builder
+FROM gobuffalo/buffalo:v0.14.2 as builder
 
 RUN mkdir -p $GOPATH/src/bitbucket.org/godinezj/solid
 WORKDIR $GOPATH/src/bitbucket.org/godinezj/solid
