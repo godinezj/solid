@@ -1,14 +1,16 @@
 package actions
 
 import (
-	"github.com/gobuffalo/buffalo"
-	"github.com/gobuffalo/buffalo/middleware"
-	"github.com/gobuffalo/buffalo/middleware/ssl"
-	"github.com/gobuffalo/envy"
-	"github.com/unrolled/secure"
-
+	"bitbucket.org/godinezj/solid/log"
 	"bitbucket.org/godinezj/solid/models"
+	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/buffalo-pop/pop/popmw"
+	"github.com/gobuffalo/envy"
+	contenttype "github.com/gobuffalo/mw-contenttype"
+	forcessl "github.com/gobuffalo/mw-forcessl"
+	paramlogger "github.com/gobuffalo/mw-paramlogger"
 	"github.com/rs/cors"
+	"github.com/unrolled/secure"
 )
 
 // ENV is used to help switch settings based on where the
@@ -35,17 +37,20 @@ func App() *buffalo.App {
 		// Automatically redirect to SSL
 		app.Use(forceSSL())
 
+		// injects log into app logger
+		log.Log = app.Logger
+
 		// Set the request content type to JSON
-		app.Use(middleware.SetContentType("application/json"))
+		app.Use(contenttype.Set("application/json"))
 
 		if ENV == "development" {
-			app.Use(middleware.ParameterLogger)
+			app.Use(paramlogger.ParameterLogger)
 		}
 
 		// Wraps each request in a transaction.
 		//  c.Value("tx").(*pop.PopTransaction)
 		// Remove to disable this.
-		app.Use(middleware.PopTransaction(models.DB))
+		app.Use(popmw.Transaction(models.DB))
 
 		app.GET("/", HomeHandler)
 
@@ -64,7 +69,7 @@ func App() *buffalo.App {
 // we recommend using a proxy: https://gobuffalo.io/en/docs/proxy
 // for more information: https://github.com/unrolled/secure/
 func forceSSL() buffalo.MiddlewareFunc {
-	return ssl.ForceSSL(secure.Options{
+	return forcessl.Middleware(secure.Options{
 		SSLRedirect:     ENV == "production",
 		SSLProxyHeaders: map[string]string{"X-Forwarded-Proto": "https"},
 	})
