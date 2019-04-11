@@ -1,8 +1,7 @@
 package actions
 
 import (
-	"log"
-
+	"bitbucket.org/godinezj/solid/log"
 	"bitbucket.org/godinezj/solid/models"
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop"
@@ -20,33 +19,35 @@ func Create(c buffalo.Context) error {
 	user := &models.User{}
 
 	// Bind user to the html form elements
-	errMessage := "Could not create user."
+	errMessage := "An error occured."
 	if err := c.Bind(user); err != nil {
+		log.Error(err)
 		return c.Render(422, r.JSON(map[string]string{"message": errMessage}))
 	}
 
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
-		log.Println("No transaction found")
+		log.Error("No transaction found")
 		return c.Render(422, r.JSON(map[string]string{"message": errMessage}))
 	}
 
 	// Validate the data
 	verrs, err := user.Create(tx)
 	if err != nil {
-		log.Println("Validation failed")
+		log.Errorf("Validation failed: %v", user)
+		log.Error(err)
+
+		if verrs.HasAny() {
+			// Respond with errors to user
+			log.Error("Validation failed")
+			for k, v := range verrs.Errors {
+				log.Error("Failed validation: " + k + ": " + v[0])
+			}
+			return c.Render(422, r.JSON(verrs))
+		}
 
 		return c.Render(422, r.JSON(map[string]string{"message": errMessage}))
-	}
-
-	if verrs.HasAny() {
-		// Respond with errors to user
-		log.Println("Validation failed")
-		for verr := range verrs.Errors {
-			log.Println("Failed validation: " + verr)
-		}
-		return c.Render(422, r.JSON(verrs))
 	}
 
 	// render success message to user
@@ -59,13 +60,13 @@ func Login(c buffalo.Context) error {
 	// Bind the user to the html form elements
 	errMessage := "Invalid email or password."
 	if err := c.Bind(user); err != nil {
-		log.Println(err)
+		log.Error(err)
 		r.JSON(map[string]string{"message": errMessage})
 	}
 	tx := c.Value("tx").(*pop.Connection)
 	err := user.Authenticate(tx)
 	if err != nil {
-		log.Println(err)
+		log.Info(err)
 		// Return invalid email/password wether users exists or not
 		return c.Render(422, r.JSON(map[string]string{"message": errMessage}))
 	} else {
@@ -78,13 +79,13 @@ func GenPassResetToken(c buffalo.Context) error {
 	user := &models.User{}
 	// Bind the user to the html form elements
 	if err := c.Bind(user); err != nil {
-		log.Println(err)
+		log.Info(err)
 		return c.Render(422, r.JSON(map[string]string{"message": "Could not reset password"}))
 	}
 	tx := c.Value("tx").(*pop.Connection)
 	err := user.SendResetToken(tx)
 	if err != nil {
-		log.Println(err)
+		log.Info(err)
 	}
 
 	// reply successfully even if email/user does not exist
@@ -100,7 +101,7 @@ func ValidatePassResetToken(c buffalo.Context) error {
 	tx := c.Value("tx").(*pop.Connection)
 	verrs, err := user.ChangePassword(tx)
 	if err != nil {
-		log.Println(err)
+		log.Info(err)
 	}
 	if verrs.HasAny() {
 		return c.Render(422, r.JSON(verrs))

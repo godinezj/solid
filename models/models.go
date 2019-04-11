@@ -1,8 +1,7 @@
 package models
 
 import (
-	"log"
-
+	"bitbucket.org/godinezj/solid/log"
 	"github.com/gobuffalo/envy"
 	"github.com/gobuffalo/pop"
 )

@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"bitbucket.org/godinezj/solid/log"
+	"bitbucket.org/godinezj/solid/test"
 	"github.com/joho/godotenv"
 )
 
 func Test_Client(t *testing.T) {
+	test.SetupTest()
+	log.Info("Running simple client test")
 	// Load Client dependencies
 	err := godotenv.Load("../.env")
 	if err != nil {
