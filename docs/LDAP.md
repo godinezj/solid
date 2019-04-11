@@ -9,7 +9,7 @@ docker run --env LDAP_ORGANISATION="Solidly" \
   --env LDAP_DOMAIN="solidly.io" \
   --env LDAP_ADMIN_PASSWORD="ADMIN_PASSWORD" \
   --detach --publish 389:389/tcp --publish 636:636/tcp \
-  osixia/openldap:1.2.2
+  osixia/openldap:1.2.3
 ```
 
 ## Search it
