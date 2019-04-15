@@ -32,22 +32,20 @@ func Create(c buffalo.Context) error {
 		return c.Render(422, r.JSON(map[string]string{"message": errMessage}))
 	}
 
-	// Validate the data
+	// Crete the user
 	verrs, err := user.Create(tx)
 	if err != nil {
-		log.Errorf("Validation failed: %v", user)
 		log.Error(err)
-
-		if verrs.HasAny() {
-			// Respond with errors to user
-			log.Error("Validation failed")
-			for k, v := range verrs.Errors {
-				log.Error("Failed validation: " + k + ": " + v[0])
-			}
-			return c.Render(422, r.JSON(verrs))
-		}
-
 		return c.Render(422, r.JSON(map[string]string{"message": errMessage}))
+	}
+
+	if verrs.HasAny() {
+		// Respond with errors to user
+		log.Errorf("Validation failed: %v", user.Email)
+		for k, v := range verrs.Errors {
+			log.Error("Failed validation: " + k + ": " + v[0])
+		}
+		return c.Render(422, r.JSON(verrs))
 	}
 
 	// render success message to user

@@ -50,12 +50,12 @@ func (u Users) String() string {
 func (u *User) Create(tx *pop.Connection) (*validate.Errors, error) {
 	u.Email = strings.ToLower(u.Email)
 	verrs, err := tx.ValidateAndCreate(u)
-	if err != nil {
+	if err != nil || verrs.HasAny() {
 		log.Errorf("verrs %v", verrs)
 		log.Errorf("errs %v", err)
 		return verrs, err
 	}
-	log.Error("User created in db")
+	log.Info("User created in db")
 
 	// make admin connection
 	client := ldap.Client{}
