@@ -9,9 +9,14 @@ ADD . .
 RUN go get $(go list ./... | grep -v /vendor/)
 RUN buffalo build --static -o /bin/app
 
-FROM alpine
-RUN apk add --no-cache bash
-RUN apk add --no-cache ca-certificates
+FROM ubuntu:latest
+
+# Install dependencies
+RUN apt-get update && apt-get install -y curl
+RUN curl -sO http://archive.ubuntu.com/ubuntu/pool/universe/e/easy-rsa/easy-rsa_3.0.4-2_all.deb && \
+    dpkg -i easy-rsa_3.0.4-2_all.deb && rm easy-rsa_3.0.4-2_all.deb && \
+    apt-get clean && \
+    ln -s /usr/share/easy-rsa/easyrsa /usr/local/bin
 
 WORKDIR /bin/
 

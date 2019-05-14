@@ -4,17 +4,14 @@ The solidly.io API.
 
 ## Database Setup
 
-It looks like you chose to set up your application using a postgres database! Fantastic!
+...
 
-The first thing you need to do is open up the "database.yml" file and edit it to use the correct usernames, passwords, hosts, etc... that are appropriate for your environment.
+## Docker
 
-You will also need to make sure that **you** start/install the database of your choice. Buffalo **won't** install and start postgres for you.
-
-### Create Your Databases
-
-Ok, so you've edited the "database.yml" file and started postgres, now Buffalo can create the databases in that file for you:
-
-`buffalo db create -a`
+To create ubuntu docker image with above
+docker build -t godinezj/solid-api .
+docker tag godinezj/solid-api godinezj/solid-api:0.1
+docker push godinezj/solid-api
 
 ## Starting the Application
 
