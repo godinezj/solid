@@ -48,5 +48,5 @@ docker run -v $OVPN_DATA:/etc/openvpn \
 ```bash
 docker run -v $OVPN_DATA:/etc/openvpn \
   --log-driver=none --rm \
-  godinezj/openvpn-ldap:latest ovpn_getclient solidclient2 > solidclient2.ovpn
+  godinezj/openvpn-ldap ovpn_getclient solidclient2 > solidclient2.ovpn
 ```

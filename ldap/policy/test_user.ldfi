@@ -1,0 +1,7 @@
+dn: cn=sam@example.com,ou=users,dc=solidly,dc=io
+cn: sam
+sn: sam
+uid: sam@example.com
+ou: Users
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
