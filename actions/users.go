@@ -67,10 +67,10 @@ func Login(c buffalo.Context) error {
 		log.Info(err)
 		// Return invalid email/password wether users exists or not
 		return c.Render(422, r.JSON(map[string]string{"message": errMessage}))
-	} else {
-		c.Session().Set("current_user_id", user.ID)
-		return c.Render(201, r.JSON(map[string]string{"message": "Login success."}))
 	}
+	c.Session().Set("current_user_id", user.ID)
+	return c.Render(201, r.JSON(map[string]string{"message": "Login success."}))
+
 }
 
 func GenPassResetToken(c buffalo.Context) error {

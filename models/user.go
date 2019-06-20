@@ -9,6 +9,7 @@ import (
 
 	"bitbucket.org/godinezj/solid/ldap"
 	"bitbucket.org/godinezj/solid/log"
+	"github.com/gobuffalo/envy"
 	"github.com/gobuffalo/pop"
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
@@ -56,7 +57,12 @@ func (u *User) Create(tx *pop.Connection) (*validate.Errors, error) {
 		return verrs, err
 	}
 	log.Info("User created in db")
-
+	// only create ldap users in prod
+	var ENV = envy.Get("GO_ENV", "development")
+	if ENV != "production" {
+		log.Infof("ENV: %s, not creating users in LDAP", ENV)
+		return verrs, err
+	}
 	// make admin connection
 	client := ldap.Client{}
 	defer client.Close() // close the admin connection
