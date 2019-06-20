@@ -50,11 +50,35 @@ CREATE TABLE public.users (
 ALTER TABLE public.users OWNER TO postgres;
 
 --
+-- Name: vpns; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.vpns (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    private_key text NOT NULL,
+    certificate text NOT NULL,
+    created_at timestamp without time zone NOT NULL,
+    updated_at timestamp without time zone NOT NULL
+);
+
+
+ALTER TABLE public.vpns OWNER TO postgres;
+
+--
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: vpns vpns_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.vpns
+    ADD CONSTRAINT vpns_pkey PRIMARY KEY (id);
 
 
 --

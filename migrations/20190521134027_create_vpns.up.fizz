@@ -1,0 +1,6 @@
+create_table("vpns") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("user_id", "uuid", {})
+	t.Column("private_key", "text", {})
+	t.Column("certificate", "text", {})
+}

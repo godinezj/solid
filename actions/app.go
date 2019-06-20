@@ -58,6 +58,8 @@ func App() *buffalo.App {
 		app.POST("/login", Login)
 		app.POST("/forgot_password", GenPassResetToken)
 		app.POST("/reset_password", ValidatePassResetToken)
+		app.POST("/vpn/create", VPNCreate)
+		app.POST("/vpn/show", VPNCreate)
 	}
 
 	return app
