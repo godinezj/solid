@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -54,15 +53,18 @@ func (v *VPN) buildClient(userID string) error {
 	// generate client certificates
 	cmd := exec.Command("./easyrsa", "build-client-full", userID, "nopass")
 	cmd.Dir = os.Getenv("EASYRSA_DIR")
-	// cmd.Stdout = os.Stdout
+	var buf bytes.Buffer
+	bufWriter := bufio.NewWriter(&buf)
+	cmd.Stdout = bufWriter
+	cmd.Stderr = bufWriter
 	log.Info(cmd.Args)
 	err = cmd.Run()
-	log.Info(fmt.Sprint(cmd.Stdout))
 	if err != nil {
-		log.Error(cmd.Stderr)
+		log.Error(buf.String())
 		log.Error(err)
 		return err
 	}
+	log.Info(buf.String())
 	log.Infof("VPN client config created for %s", userID)
 	return nil
 }

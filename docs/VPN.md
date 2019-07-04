@@ -2,6 +2,13 @@
 
 OpenVPN setup from Docker container.
 
+## Create Data Volume
+
+```bash
+export OVPN_DATA="ovpn-data"
+docker volume create --name $OVPN_DATA
+```
+
 ## Generate Configuration
 
 ```bash
@@ -14,7 +21,7 @@ docker run -v $OVPN_DATA:/etc/openvpn \
 
 ```bash
 docker run -v $OVPN_DATA:/etc/openvpn \
-    --rm -it godinezj/openvpn-ldap ovpn_initpki
+    --rm -it godinezj/openvpn-ldap ovpn_initpki nopass
 ```
 
 ## Configure LDAP

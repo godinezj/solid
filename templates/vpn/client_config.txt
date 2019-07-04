@@ -7,17 +7,12 @@ remote solidly.io 443 tcp
 
 <key>
 <%= vpn.PrivateKey %></key>
-
 <cert>
 <%= vpn.Certificate %></cert>
-
 <ca>
 <%= CACert %></ca>
-
 key-direction 1
-
 <tls-auth>
-<%= vpn.TLSAuthKey %>
-</tls-auth>
+<%= vpn.TLSAuthKey %></tls-auth>
 
 redirect-gateway def1
