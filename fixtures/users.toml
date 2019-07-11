@@ -1,0 +1,24 @@
+[[scenario]]
+name = "users test"
+  [[scenario.table]]
+    name = "users"
+
+    [[scenario.table.row]]
+      id = "<%= uuidNamed("user") %>"
+      username = "johndoe"
+      first_name = "John"
+      last_name = "Doe"
+      email = "jd@example.com"
+      zip = "90210"
+      reset_token = "<%= uuid() %>"
+      reset_token_expire = "1/1/2001"
+      created_at = "<%= now() %>"
+      updated_at = "<%= now() %>"
+
+  [[scenario.table]]
+    name = "vpns"
+    user_id = "<%= uuidNamed("user") %>"
+    private_key = ""
+    certificate = ""
+    created_at = "<%= now() %>"
+    updated_at = "<%= now() %>"

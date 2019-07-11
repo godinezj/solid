@@ -35,7 +35,7 @@ Create user:
 
 ```bash
 curl -H 'Content-Type: application/json' \
-    -d '{"email":"godinezj@gmail.com", "password":"password", "password_confirm":"password"}' \
+    -d '{"username": "JOHNDOE", "first_name": "John", "last_name": "Doe", "email":"jd@example.com", "password":"P@ssw0rd!", "password_confirm":"P@ssw0rd!", "zip": "90210"}' \
     -X POST http://127.0.0.1:3000/users
 ```
 
@@ -43,8 +43,8 @@ Login
 
 ```bash
 curl -H 'Content-Type: application/json' \
-    -d '{"email":"godinezj@gmail.com", "password":"password"}' \
-    http://127.0.0.1:3000/login
+    -d '{"email":"johndoe", "password":"password"}' \
+    -v http://127.0.0.1:3000/login
 ```
 
 Forgot password

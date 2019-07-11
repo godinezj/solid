@@ -1,6 +1,8 @@
 package actions
 
 import (
+	"runtime/debug"
+
 	"bitbucket.org/godinezj/solid/log"
 	"bitbucket.org/godinezj/solid/models"
 	"github.com/gobuffalo/buffalo"
@@ -31,23 +33,21 @@ func Create(c buffalo.Context) error {
 		log.Error("No transaction found")
 		return c.Render(422, r.JSON(map[string]string{"message": errMessage}))
 	}
-
 	// Crete the user
 	verrs, err := user.Create(tx)
 	if err != nil {
 		log.Error(err)
+		debug.PrintStack()
 		return c.Render(422, r.JSON(map[string]string{"message": errMessage}))
 	}
-
 	if verrs.HasAny() {
 		// Respond with errors to user
-		log.Errorf("Validation failed: %v", user.Email)
+		log.Errorf("Validation failed: %v", user.Username)
 		for k, v := range verrs.Errors {
 			log.Error("Failed validation: " + k + ": " + v[0])
 		}
 		return c.Render(422, r.JSON(verrs))
 	}
-
 	// render success message to user
 	return c.Render(200, r.JSON(map[string]string{"message": "Account created, please login."}))
 }
@@ -56,7 +56,7 @@ func Create(c buffalo.Context) error {
 func Login(c buffalo.Context) error {
 	user := &models.User{}
 	// Bind the user to the html form elements
-	errMessage := "Invalid email or password."
+	errMessage := "Invalid username or password."
 	if err := c.Bind(user); err != nil {
 		log.Error(err)
 		r.JSON(map[string]string{"message": errMessage})

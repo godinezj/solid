@@ -9,7 +9,6 @@ import (
 
 	"bitbucket.org/godinezj/solid/ldap"
 	"bitbucket.org/godinezj/solid/log"
-	"github.com/gobuffalo/envy"
 	"github.com/gobuffalo/pop"
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
@@ -17,10 +16,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+// User represents a user
 type User struct {
 	ID                uuid.UUID `json:"id" db:"id"`
 	CreatedAt         time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at" db:"updated_at"`
+	Username          string    `json:"username" db:"username"`
 	FirstName         string    `json:"first_name" db:"first_name"`
 	LastName          string    `json:"last_name" db:"last_name"`
 	Email             string    `json:"email" db:"email"`
@@ -50,6 +51,7 @@ func (u Users) String() string {
 // Create validates and creates a new User.
 func (u *User) Create(tx *pop.Connection) (*validate.Errors, error) {
 	u.Email = strings.ToLower(u.Email)
+	u.Username = strings.ToLower(u.Username)
 	verrs, err := tx.ValidateAndCreate(u)
 	if err != nil || verrs.HasAny() {
 		log.Errorf("verrs %v", verrs)
@@ -58,11 +60,11 @@ func (u *User) Create(tx *pop.Connection) (*validate.Errors, error) {
 	}
 	log.Info("User created in db")
 	// only create ldap users in prod
-	var ENV = envy.Get("GO_ENV", "development")
-	if ENV != "production" {
-		log.Infof("ENV: %s, not creating users in LDAP", ENV)
-		return verrs, err
-	}
+	// var ENV = envy.Get("GO_ENV", "development")
+	// if ENV != "production" {
+	// 	log.Infof("ENV: %s, not creating users in LDAP", ENV)
+	// 	return verrs, err
+	// }
 	// make admin connection
 	client := ldap.Client{}
 	defer client.Close() // close the admin connection
@@ -78,7 +80,7 @@ func (u *User) Create(tx *pop.Connection) (*validate.Errors, error) {
 	}
 
 	// add user
-	_, err = client.AddUser(u.FirstName, u.LastName, u.Email, u.Password)
+	_, err = client.AddUser(u.FirstName, u.LastName, u.Username, u.Password)
 	if err != nil {
 		verrs.Add("ldap", "An error occured creating user")
 		return verrs, err
@@ -97,6 +99,8 @@ func (u *User) Update(tx *pop.Connection) (*validate.Errors, error) {
 // This method is not required and may be deleted.
 func (u *User) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
+		&validators.RegexMatch{Name: "Username", Field: u.Username, Expr: "[a-zA-Z]+"},
+		&validators.StringLengthInRange{Name: "Username", Field: u.Username, Min: 6, Max: 64},
 		&validators.StringIsPresent{Field: u.Email, Name: "Email"},
 		&validators.EmailIsPresent{Field: u.Email, Name: "Email"},
 		&validators.StringIsPresent{Field: u.Password, Name: "Password"},
@@ -104,13 +108,16 @@ func (u *User) Validate(tx *pop.Connection) (*validate.Errors, error) {
 		&StrongPassword{Field: u.Password, Name: "Password"},
 		&validators.StringLengthInRange{Field: u.Password, Name: "Password", Min: 6, Max: 64},
 		&validators.StringsMatch{Name: "Password", Field: u.Password, Field2: u.PasswordConfirm, Message: "Passwords do not match."},
+		&validators.RegexMatch{Name: "Zip", Field: u.Zip, Expr: "[0-9]+"},
+		&validators.StringLengthInRange{Name: "Zip", Field: u.Zip, Min: 5, Max: 5},
 	), nil
 }
 
 // ValidateCreate gets run every time you call "pop.ValidateAndCreate" method.
 func (u *User) ValidateCreate(tx *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
-		&EmailNotTaken{Name: "Email", Field: u.Email, tx: tx},
+		&NotTaken{Name: "Email", Field: u.Email, tx: tx},
+		&NotTaken{Name: "Username", Field: u.Username, tx: tx},
 	), nil
 }
 
@@ -147,18 +154,18 @@ func (v *StrongPassword) IsValid(errors *validate.Errors) {
 	}
 }
 
-type EmailNotTaken struct {
+type NotTaken struct {
 	Name  string
 	Field string
 	tx    *pop.Connection
 }
 
-func (v *EmailNotTaken) IsValid(errors *validate.Errors) {
-	query := v.tx.Where("email=?", v.Field).Select("email")
+func (v *NotTaken) IsValid(errors *validate.Errors) {
+	query := v.tx.Where(v.Name+"=?", v.Field).Select(v.Name)
 	queryUser := User{}
 	err := query.First(&queryUser)
 	if err == nil { // found user with same email
-		errors.Add(validators.GenerateKey(v.Name), "Account with that email aready exists")
+		errors.Add(validators.GenerateKey(v.Name), "Account with that "+v.Name+" aready exists")
 	}
 }
 
@@ -168,7 +175,7 @@ func (u *User) Load(tx *pop.Connection) error {
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			// couldn't find an user with that email address
-			return errors.New("User not found.")
+			return errors.New("user not found")
 		}
 		return errors.WithStack(err)
 	}
@@ -177,7 +184,7 @@ func (u *User) Load(tx *pop.Connection) error {
 
 // Authenticate checks user's password for logging in
 func (u *User) Authenticate(tx *pop.Connection) error {
-	log.Info("Authenticating " + u.Email)
+	log.Info("Authenticating " + u.Username)
 	if err := u.Load(tx); err != nil {
 		return err
 	}
@@ -186,13 +193,14 @@ func (u *User) Authenticate(tx *pop.Connection) error {
 	if err := ldap.Connect(); err != nil {
 		return err
 	}
-	err := ldap.Authenticate(u.Email, u.Password)
+	err := ldap.Authenticate(u.Username, u.Password)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+// SendResetToken sends the reset token via email
 func (u *User) SendResetToken(tx *pop.Connection) error {
 	if err := u.Load(tx); err != nil {
 		return err
@@ -212,6 +220,7 @@ func (u *User) SendResetToken(tx *pop.Connection) error {
 	return nil
 }
 
+// ChangePassword used to change a user's password
 func (u *User) ChangePassword(tx *pop.Connection) (*validate.Errors, error) {
 	// find user by email
 	query := tx.Where("email = ?", u.Email)

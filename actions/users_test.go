@@ -2,20 +2,9 @@ package actions
 
 import "bitbucket.org/godinezj/solid/models"
 
-// func (as *ActionSuite) Test_UsersResource_List() {
-// 	as.Fail("Not Implemented!")
-// }
-
-// func (as *ActionSuite) Test_UsersResource_Show() {
-// 	as.Fail("Not Implemented!")
-// }
-
-// func (as *ActionSuite) Test_UsersResource_New() {
-// 	as.Fail("Not Implemented!")
-// }
-
 func (as *ActionSuite) Test_UsersResource_Create() {
 	u := &models.User{
+		Username:        "johndoe",
 		FirstName:       "John",
 		LastName:        "Doe",
 		Email:           "jd@example.com",
